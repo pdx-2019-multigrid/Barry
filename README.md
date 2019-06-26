@@ -1,1 +1,1 @@
-Use to see my CMakeLists.txt files. The .cpp and .hpp files are in [`src`](src). The directory ['data'](data) contains sample matrices.
+Use to see my `CMakeLists.txt` files. The .cpp and .hpp files are in [`src`](src). The directory [`data`](data) contains sample matrices. Feel free to let me know how to git better since I am new at this.
