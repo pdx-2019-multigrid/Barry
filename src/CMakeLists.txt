@@ -5,7 +5,8 @@ densematrix.cpp
 operator.cpp
 sparsematrix.cpp
 vector.cpp
-vectorview.cpp)
+vectorview.cpp
+)
 
-# Let conjgrad.cpp know where the library is.
+# Let our "main.cpp" know where the library is.
 target_include_directories(linalg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

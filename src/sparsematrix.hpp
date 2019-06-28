@@ -266,11 +266,16 @@ class SparseMatrix : public Operator
         */
         DenseMatrix TransposeDense() const;
 
-        /*! @brief Genereates the transpose of this matrix into
+        /*! @brief Generates the transpose of this matrix into
                    dense matrix
             @param output Dense transpose
         */
         void TransposeDense(DenseMatrix& output) const;
+
+        /*! @brief Create l1-smoother for PCG
+            @param diag the diagonal entries
+        */
+        std::vector<double> l1(const std::vector<T>& diag);
 
         /*! @brief Get the diagonal entries
             @retval the diagonal entries
@@ -773,6 +778,27 @@ void SparseMatrix<T>::TransposeDense(DenseMatrix& output) const
             output(indices_[j], i) = data_[j];
         }
     }
+}
+
+template <typename T>
+std::vector<double> SparseMatrix<T>::l1(const std::vector<T>& diag)
+{
+    assert(rows_ == cols_);
+
+    std::vector<double> scale(rows_);
+
+    for (int i = 0; i < rows_; ++i)
+    {
+        double val = 0.0;
+        
+        for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+        {
+            val += abs(data_[j]) * sqrt(diag[i] / diag[j]);
+        }
+        scale[i] = val;
+    }
+    return scale;
+
 }
 
 template <typename T>
