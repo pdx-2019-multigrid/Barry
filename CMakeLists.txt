@@ -10,10 +10,11 @@ project(LANGUAGES CXX)
 # files there, a library called linalg.
 add_subdirectory(src)
 
-# Make an executable file called test from conjgrad.cpp.
-add_executable(test conjgrad.cpp)
+# Make an executable files.
+add_executable(test cg.cpp)
 
-# Link library linalg into execuatble test.
+
+# Link library linalg into executable test.
 target_link_libraries(test PRIVATE linalg) 
 
 # Copy Coo list files into build directory.
@@ -27,3 +28,4 @@ copy(mat1.txt)
 copy(mat2.txt)
 copy(mat3.txt)
 copy(mat4.txt)
+copy(k3.txt)
