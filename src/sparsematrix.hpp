@@ -790,15 +790,11 @@ std::vector<double> SparseMatrix<T>::l1(const std::vector<T>& diag)
     for (int i = 0; i < rows_; ++i)
     {
         double val = 0.0;
-        
         for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
-        {
-            val += abs(data_[j]) * sqrt(diag[i] / diag[j]);
-        }
+          val += abs(data_[j]) * sqrt(diag[i] / diag[indices_[j]]);
         scale[i] = val;
     }
     return scale;
-
 }
 
 template <typename T>
