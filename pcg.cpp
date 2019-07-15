@@ -42,6 +42,7 @@ int main()
 
   std::cout << "None: ";
   num_iter = myPCG(A, x, b, &SparseMatrix<double>::None);
+<<<<<<< HEAD
 
   std::cout << "Jacobi: ";
   myPCG(A, x, b, &SparseMatrix<double>::Jacobi);
