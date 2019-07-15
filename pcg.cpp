@@ -1,11 +1,10 @@
-#include <iostream>
-
 #include "vectorview.hpp"
 #include "parser.hpp"
 
 using namespace linalgcpp;
 
-// Solve Ax = b using a preconditioned conjugate gradient method.
+// Preconditioned conjugate gradient method.
+// Returns number of iterations.
 int myPCG(const SparseMatrix<double>& A,
            Vector<double>& x,
            const Vector<double>& b,
@@ -16,7 +15,8 @@ int myPCG(const SparseMatrix<double>& A,
 
 int main()
 {
-  // Create graph laplacian from edge list.
+  // Create graph Laplacian from edge list.
+  // Must have zeroth vertex.
   std::string filename;
   std::cout << "Please type the input filename: ";
   getline(std::cin, filename);
@@ -29,11 +29,10 @@ int main()
   const int n = A.Cols();
 
   // Compare size of matrix with number of iterations
-  // for (preconditioned) conjugate gradient.
-  std::cout << "The adjacency matrix is " << n << "x" << n 
+  std::cout << "The matrix is " << n << "x" << n 
             << ".\n" <<std::endl;
 
-  Vector<double> x0(n); // Exact solution.
+  Vector<double> x0(n); // Exact solution x0.
   Randomize(x0, -10.0, 10.0); // Fill x0 with random values.
   Vector<double> b(A.Mult(x0)); // Definition of b.
 
@@ -41,7 +40,7 @@ int main()
   int num_iter;
 
   // Each preconditioner is a method of the SparseMatrix
-  // class. The notation leaves something to be desired.
+  // class. The syntax leaves something to be desired.
   std::cout << "Jacobi: ";
   myPCG(A, x, b, &SparseMatrix<double>::Jacobi);
 
@@ -65,8 +64,7 @@ int myPCG(const SparseMatrix<double>& A,
 	   bool verbose)
 { 
   x = 0; // Set initial iterate to zero.
-  // We let b = Ax. Because x = 0, 
-  // the first residual r = b - A(x) = b. 
+  // Because x = 0, the first residual r = b - A(x) = b. 
   Vector<double> r(b);
   Vector<double> y = (A.*precond)(r); // Preconditioned residual.
 
@@ -75,14 +73,14 @@ int myPCG(const SparseMatrix<double>& A,
   Vector<double> g; // See usage below.
 
   int num_iter = 0;
-  double c0 = r.Mult(y); // (r^T)y
-  Vector<double> c(A.Cols() + 11); // Squares of residual norm.
+  double c0 = r.Mult(y); // r dot y
+  Vector<double> c(A.Cols() + 2); // Squares of residual norm.
   c[0] = c0;
 
   double alpha, beta, c1, t;
 
   // Beginning of PCG algorithm.
-  for (int i = 0; i < A.Rows() + 10; ++i)
+  for (int i = 0; i < A.Rows() + 1; ++i)
   {
     A.Mult(p, g); // g := Ap.
     t = p.Mult(g);
@@ -112,16 +110,16 @@ int myPCG(const SparseMatrix<double>& A,
 
   if (verbose)
   {
-    // Print the last three squares of the residual norm
-    // that are computed.
+    // Print the last three squares of the residual 
+    // norm that are computed.
     for (int i = num_iter - 2; i < num_iter + 1; ++i)
       printf("c[%d] = %.3e\n", i, c[i]);
 
+    // Let us see how close the approximation is
+    // in the euclidean norm.
     r = b - A.Mult(x);
     double error(L2Norm(r));
 
-    // Let us see how close the approximation is
-    // in the euclidean norm.
     std::cout << "Compare the approx soln with the exact: ";
     printf("|x - x0| = %.3e\n", error);
     std::cout << std::endl;

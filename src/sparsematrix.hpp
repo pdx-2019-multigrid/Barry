@@ -280,7 +280,6 @@ class SparseMatrix : public Operator
 
 
 
-	Vector<T> None(Vector<T>) const;
         Vector<T> Jacobi(Vector<T>) const;
         Vector<T> L1(Vector<T>) const;
         Vector<T> GaussSeidel(Vector<T>) const;
@@ -804,11 +803,6 @@ void SparseMatrix<T>::TransposeDense(DenseMatrix& output) const
 
 
 
-template <typename T>
-Vector<T> SparseMatrix<T>::None(Vector<T> r) const
-{
-  return r;
-}
 
 template <typename T>
 Vector<T> SparseMatrix<T>::Jacobi(Vector<T> r) const
