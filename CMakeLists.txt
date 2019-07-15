@@ -15,7 +15,7 @@ add_executable(test pcg.cpp)
 
 
 # Link library linalg into executable test.
-target_link_libraries(work PRIVATE linalg)
+target_link_libraries(test PRIVATE linalg)
 
 # Copy Coo list files into build directory.
 function(copy filename)
