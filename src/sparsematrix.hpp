@@ -272,10 +272,26 @@ class SparseMatrix : public Operator
         */
         void TransposeDense(DenseMatrix& output) const;
 
-        /*! @brief Create l1-smoother for PCG
-            @param diag the diagonal entries
-        */
-        std::vector<double> l1(const std::vector<T>& diag);
+
+
+
+
+
+
+
+
+	Vector<T> None(Vector<T>) const;
+        Vector<T> Jacobi(Vector<T>) const;
+        Vector<T> L1(Vector<T>) const;
+        Vector<T> GaussSeidel(Vector<T>) const;
+
+
+
+
+
+
+
+
 
         /*! @brief Get the diagonal entries
             @retval the diagonal entries
@@ -780,22 +796,110 @@ void SparseMatrix<T>::TransposeDense(DenseMatrix& output) const
     }
 }
 
+
+
+
+
+
+
+
+
 template <typename T>
-std::vector<double> SparseMatrix<T>::l1(const std::vector<T>& diag)
+Vector<T> SparseMatrix<T>::None(Vector<T> r) const
 {
-    assert(rows_ == cols_);
-
-    std::vector<double> scale(rows_);
-
-    for (int i = 0; i < rows_; ++i)
-    {
-        double val = 0.0;
-        for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
-          val += abs(data_[j]) * sqrt(diag[i] / diag[indices_[j]]);
-        scale[i] = val;
-    }
-    return scale;
+  return r;
 }
+
+template <typename T>
+Vector<T> SparseMatrix<T>::Jacobi(Vector<T> r) const
+{
+  // r.Print("r:");
+  assert(rows_ == cols_);
+  assert(rows_ == r.size());
+
+  Vector<double> diag(this->GetDiag());
+  // diag.Print("diag:");
+  for (int i = 0; i < rows_; ++i)
+    r[i] = r[i] / diag[i];
+  // r.Print("new r:"); 
+  return r;
+}
+
+template <typename T>
+Vector<T> SparseMatrix<T>::L1(Vector<T> r) const
+{
+  // r.Print("r:");
+  assert(rows_ == cols_);
+
+  Vector<double> diag(this->GetDiag());
+  // diag.Print("diag:");
+  for (int i = 0; i < rows_; ++i)
+  {
+    double sum = 0.0;
+    for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+      sum += abs(data_[j]) * sqrt(diag[i] / diag[indices_[j]]);
+    r[i] = r[i] / sum;
+  }
+  // r.Print("new r:");
+  return r;
+}
+
+template <typename T>
+Vector<T> SparseMatrix<T>::GaussSeidel(Vector<T> r) const
+{
+  assert(rows_ == cols_);
+  assert(rows_ == r.size());
+  
+  const int n = cols_;
+  double sum;
+    
+  // r.Print("r:");
+
+  Vector<double> diag(n);
+  Vector<double> y(n);
+    
+  // Forward substitution to solve: (D + L)y = r.
+  for (int i = 0; i < n; ++i)
+  {
+    sum = 0.0;
+    for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+    {
+      if (i == indices_[j])
+        diag[i] = data_[j];
+        
+      if (indices_[j] < i)
+        sum += y[indices_[j]] * data_[j];
+    }
+    y[i] = (r[i] - sum) / diag[i];
+  }
+  // diag.Print("diag:");
+
+  y *= diag; // Let y be diag * y.
+
+  // Backward substitution. Vectors r and y switch roles.
+  // Solving the equation: (D + U)r = y.
+  r[n - 1] = y[n - 1] / diag[n - 1];
+
+  for (int i = n - 2; i > -1; --i)
+  {
+    sum = 0.0;
+    for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+    {
+      if (indices_[j] > i)
+        sum += r[indices_[j]] * data_[j];
+    }
+    r[i] = (y[i] - sum) / diag[i];
+  } 
+  return r;
+}
+
+
+
+
+
+
+
+
 
 template <typename T>
 std::vector<double> SparseMatrix<T>::GetDiag() const
