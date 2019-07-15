@@ -11,11 +11,11 @@ project(LANGUAGES CXX)
 add_subdirectory(src)
 
 # Make an executable files.
-add_executable(test cg.cpp)
+add_executable(test pcg.cpp)
 
 
 # Link library linalg into executable test.
-target_link_libraries(test PRIVATE linalg) 
+target_link_libraries(work PRIVATE linalg)
 
 # Copy Coo list files into build directory.
 function(copy filename)
@@ -24,8 +24,6 @@ function(copy filename)
     "${PROJECT_BINARY_DIR}/${filename}" COPYONLY)
 endfunction(copy)
 
-copy(mat1.txt)
-copy(mat2.txt)
-copy(mat3.txt)
-copy(mat4.txt)
-copy(k3.txt)
+copy(34.txt)
+copy(665.txt)
+copy(6k.txt)
