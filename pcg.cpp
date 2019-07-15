@@ -40,10 +40,8 @@ int main()
   Vector<double> x(n); // Iterate x.
   int num_iter;
 
-  std::cout << "None: ";
-  num_iter = myPCG(A, x, b, &SparseMatrix<double>::None);
-<<<<<<< HEAD
-
+  // Each preconditioner is a method of the SparseMatrix
+  // class. The notation leaves something to be desired.
   std::cout << "Jacobi: ";
   myPCG(A, x, b, &SparseMatrix<double>::Jacobi);
 
@@ -56,6 +54,8 @@ int main()
   return 0;
 }
 
+// This function solves Ax = b using one of the three
+// preconditioners shown above.
 int myPCG(const SparseMatrix<double>& A,
            Vector<double>& x,
            const Vector<double>& b,
@@ -76,7 +76,7 @@ int myPCG(const SparseMatrix<double>& A,
 
   int num_iter = 0;
   double c0 = r.Mult(y); // (r^T)y
-  Vector<double> c(A.Cols() + 11); // Squares of residual norm
+  Vector<double> c(A.Cols() + 11); // Squares of residual norm.
   c[0] = c0;
 
   double alpha, beta, c1, t;
@@ -91,6 +91,7 @@ int myPCG(const SparseMatrix<double>& A,
     x.Add(alpha, p);
     r.Sub(alpha, g);
 
+    // Copy two vectors by value. May be inefficient.
     y = (A.*precond)(r);
 
     c1 = c[i];
@@ -104,15 +105,23 @@ int myPCG(const SparseMatrix<double>& A,
     p *= beta;
     p += y;
   }
+  // If num_iter > A.Cols(), then the algorithm
+  // did not converge in the expected (theoretical)
+  // number of iterations.
   printf("num_iter = %d\n", num_iter);
+
   if (verbose)
   {
+    // Print the last three squares of the residual norm
+    // that are computed.
     for (int i = num_iter - 2; i < num_iter + 1; ++i)
-      printf("|r|^2[%d] = %.3e\n", i, c[i]);
+      printf("c[%d] = %.3e\n", i, c[i]);
 
     r = b - A.Mult(x);
     double error(L2Norm(r));
 
+    // Let us see how close the approximation is
+    // in the euclidean norm.
     std::cout << "Compare the approx soln with the exact: ";
     printf("|x - x0| = %.3e\n", error);
     std::cout << std::endl;
