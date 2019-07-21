@@ -112,8 +112,13 @@ int myPCG(const SparseMatrix<double>& A,
   {
     // Print the last three squares of the residual 
     // norm that are computed.
+    // for (int i = num_iter - 2; i < num_iter + 1; ++i)
+    //   printf("c[%d] = %.3e\n", i, c[i]);
+
+    // Print the last three residual norms 
+    // that are computed.
     for (int i = num_iter - 2; i < num_iter + 1; ++i)
-      printf("c[%d] = %.3e\n", i, c[i]);
+      printf("|r| = %.3e\n", sqrt(c[i]));
 
     // Let us see how close the approximation is
     // in the euclidean norm.
