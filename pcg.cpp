@@ -24,6 +24,7 @@ int main()
 
   // Make the matrix positive definite.
   A.EliminateRowCol(A.Rows() - 1);
+  A.EliminateZeros();
 
   // Let n be length of a vector.
   const int n = A.Cols();
