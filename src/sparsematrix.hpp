@@ -282,7 +282,15 @@ class SparseMatrix : public Operator
 
         Vector<T> Jacobi(Vector<T>) const;
         Vector<T> L1(Vector<T>) const;
-        Vector<T> GaussSeidel(Vector<T>) const;
+
+        template <typename U = double>
+        Vector<U> GaussSeidel(Vector<U>) const;
+
+        template <typename U = double> 
+        Vector<U> ForwardGauss(Vector<U> r) const;
+
+        template <typename U = double> 
+        Vector<U> BackwardGauss(Vector<U> r) const;
 
 
 
@@ -807,26 +815,21 @@ void SparseMatrix<T>::TransposeDense(DenseMatrix& output) const
 template <typename T>
 Vector<T> SparseMatrix<T>::Jacobi(Vector<T> r) const
 {
-  // r.Print("r:");
   assert(rows_ == cols_);
   assert(rows_ == r.size());
 
   Vector<double> diag(this->GetDiag());
-  // diag.Print("diag:");
   for (int i = 0; i < rows_; ++i)
     r[i] = r[i] / diag[i];
-  // r.Print("new r:"); 
   return r;
 }
 
 template <typename T>
 Vector<T> SparseMatrix<T>::L1(Vector<T> r) const
 {
-  // r.Print("r:");
   assert(rows_ == cols_);
 
   Vector<double> diag(this->GetDiag());
-  // diag.Print("diag:");
   for (int i = 0; i < rows_; ++i)
   {
     double sum = 0.0;
@@ -834,21 +837,18 @@ Vector<T> SparseMatrix<T>::L1(Vector<T> r) const
       sum += abs(data_[j]) * sqrt(diag[i] / diag[indices_[j]]);
     r[i] = r[i] / sum;
   }
-  // r.Print("new r:");
   return r;
 }
 
 template <typename T>
-Vector<T> SparseMatrix<T>::GaussSeidel(Vector<T> r) const
+template <typename U>
+Vector<U> SparseMatrix<T>::GaussSeidel(Vector<U> r) const
 {
   assert(rows_ == cols_);
   assert(rows_ == r.size());
   
   const int n = cols_;
   double sum;
-    
-  // r.Print("r:");
-
   Vector<double> diag(n);
   Vector<double> y(n);
     
@@ -866,15 +866,13 @@ Vector<T> SparseMatrix<T>::GaussSeidel(Vector<T> r) const
     }
     y[i] = (r[i] - sum) / diag[i];
   }
-  // diag.Print("diag:");
 
   y *= diag; // Let y be diag * y.
 
   // Backward substitution. Vectors r and y switch roles.
   // Solving the equation: (D + U)r = y.
-  r[n - 1] = y[n - 1] / diag[n - 1];
 
-  for (int i = n - 2; i > -1; --i)
+  for (int i = n - 1; i > -1; --i)
   {
     sum = 0.0;
     for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
@@ -887,7 +885,56 @@ Vector<T> SparseMatrix<T>::GaussSeidel(Vector<T> r) const
   return r;
 }
 
+template <typename T>
+template <typename U>
+Vector<U> SparseMatrix<T>::ForwardGauss(Vector<U> r) const
+{
+  const int n = cols_;
+  double sum;
+  double diag;
+  Vector<double> y(n);
 
+  for (int i = 0; i < n; ++i)
+  {
+    sum = 0.0;
+    for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+    {
+      if (i == indices_[j])
+        diag = data_[j];
+        
+      if (indices_[j] < i)
+        sum += y[indices_[j]] * data_[j];
+    }
+    y[i] = (r[i] - sum) / diag;
+  }
+  return y;
+}
+
+template <typename T>
+template <typename U>
+Vector<U> SparseMatrix<T>::BackwardGauss(Vector<U> r) const
+{
+  const int n = cols_;
+  double sum;
+  
+  double diag;
+  Vector<double> y(n);
+
+  for (int i = n - 1; i > -1; --i)
+  {
+    sum = 0.0;
+    for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+    {
+      if (i == indices_[j])
+        diag = data_[j];
+        
+      if (indices_[j] > i)
+        sum += y[indices_[j]] * data_[j];
+    }
+    y[i] = (r[i] - sum) / diag;
+  }
+  return y;
+}
 
 
 
