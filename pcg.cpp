@@ -6,12 +6,12 @@ using namespace linalgcpp;
 // Preconditioned conjugate gradient method.
 // Returns number of iterations.
 int myPCG(const SparseMatrix<double>& A,
-           Vector<double>& x,
-           const Vector<double>& b,
-           Vector<double>(SparseMatrix<double>::*precond)
-           (Vector<double>) const,
-           double tol = 1e-16,
-	   bool verbose = true);
+          Vector<double>& x,
+          const Vector<double>& b,
+          Vector<double>(SparseMatrix<double>::*precond)
+          (Vector<double>) const,
+          double tol = 1e-16,
+          bool verbose = true);
 
 int main()
 {
@@ -57,12 +57,12 @@ int main()
 // This function solves Ax = b using one of the three
 // preconditioners shown above.
 int myPCG(const SparseMatrix<double>& A,
-           Vector<double>& x,
-           const Vector<double>& b,
-           Vector<double>(SparseMatrix<double>::*precond)
-           (Vector<double>) const,
-           double tol,
-	   bool verbose)
+          Vector<double>& x,
+          const Vector<double>& b,
+          Vector<double>(SparseMatrix<double>::*precond)
+          (Vector<double>) const,
+          double tol,
+          bool verbose)
 { 
   x = 0; // Set initial iterate to zero.
   // Because x = 0, the first residual r = b - A(x) = b. 
