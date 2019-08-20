@@ -1,5 +1,4 @@
-#include "vectorview.hpp"
-#include "parser.hpp"
+#include "partition.hpp"
 
 using namespace linalgcpp;
 
@@ -26,16 +25,16 @@ int PCG(const SparseMatrix<double>& A,
 // Conjugate gradient method with two-level preconditioner.
 // Returns number of iterations.
 int TL(const SparseMatrix<double>& A,
-           Vector<double>& x,
-           const Vector<double>& x0,
-           const Vector<double>& b,
-           Vector<double>(*precond)
-           (const SparseMatrix<double>&,
-            const Vector<double>&,
-            const SparseMatrix<int>&,
-            const SparseMatrix<double>&),
-           double tol = 1e-9,
-           bool verbose = true);
+       Vector<double>& x,
+       const Vector<double>& x0,
+       const Vector<double>& b,
+       Vector<double>(*precond)
+       (const SparseMatrix<double>&,
+        const Vector<double>&,
+        const SparseMatrix<int>&,
+        const SparseMatrix<double>&),
+       double tol = 1e-9,
+       bool verbose = true);
 
 // Two-level preconditioner used in function TL.
 Vector<double> TwoLevel(const SparseMatrix<double>& A, 
@@ -83,6 +82,9 @@ int main()
 
   std::cout << "PCG Gauss-Seidel: ";
   PCG(A, x, x0, b, &SparseMatrix<double>::GaussSeidel);
+
+  std::cout << "TL: ";
+  TL(A, x, x0, b, TwoLevel);
 
   return 0;
 }
@@ -226,16 +228,16 @@ int PCG(const SparseMatrix<double>& A,
 }
 
 int TL(const SparseMatrix<double>& A,
-           Vector<double>& x,
-           const Vector<double>& x0,
-           const Vector<double>& b,
-           Vector<double>(*precond)
-           (const SparseMatrix<double>&,
-            const Vector<double>&,
-            const SparseMatrix<int>&,
-            const SparseMatrix<double>&),
-           bool verbose,
-           double tol)
+       Vector<double>& x,
+       const Vector<double>& x0,
+       const Vector<double>& b,
+       Vector<double>(*precond)
+       (const SparseMatrix<double>&,
+        const Vector<double>&,
+        const SparseMatrix<int>&,
+        const SparseMatrix<double>&),
+       double tol,
+       bool verbose)
 { 
   // Determine interpolation matrix P and coarse graph Laplacian Ac.
   int nparts = std::max(2.0, cbrt(A.Cols()));
@@ -314,7 +316,7 @@ Vector<double> TwoLevel(const SparseMatrix<double>& A,
   Vector<double> x(A.ForwardGauss(b)); // Use M = D + L. 
   Vector<double> rc(P.MultAT(b - A.Mult(x))); // x is x_(1/3)
   Vector<double> xc(Ac.Cols());
-  CG(Ac, xc, b, rc, false);
+  CG(Ac, xc, b, rc, 1e-9, false);
   x.Add(P.Mult(xc));
   x.Add(A.BackwardGauss(b - A.Mult(x))); // M.Transpose() = D + U // x is x_(2/3)
 
