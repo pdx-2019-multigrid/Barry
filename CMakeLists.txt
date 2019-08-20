@@ -1,7 +1,10 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.5)
 
 # Use C++11
 set(CMAKE_CXX_STANDARD 11)
+
+# Do not use debug mode.
+set(CMAKE_BUILD_TYPE Release)
 
 # We have no C files and can tell CMake that.
 project(LANGUAGES CXX) 
@@ -10,20 +13,8 @@ project(LANGUAGES CXX)
 # files there, a library called linalg.
 add_subdirectory(src)
 
-# Make an executable files.
+# Make an executable file.
 add_executable(test pcg.cpp)
-
 
 # Link library linalg into executable test.
 target_link_libraries(test PRIVATE linalg)
-
-# Copy Coo list files into build directory.
-function(copy filename)
-  configure_file(
-    "${PROJECT_SOURCE_DIR}/data/${filename}"
-    "${PROJECT_BINARY_DIR}/${filename}" COPYONLY)
-endfunction(copy)
-
-copy(34.txt)
-copy(665.txt)
-copy(6k.txt)

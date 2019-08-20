@@ -1,11 +1,11 @@
 # Let us define a library with the listed cpp files.
 add_library(linalg
-coomatrix.cpp
-densematrix.cpp
-operator.cpp
-sparsematrix.cpp
-vector.cpp
 vectorview.cpp
+vector.cpp
+operator.cpp
+densematrix.cpp
+sparsematrix.cpp
+coomatrix.cpp
 )
 
 # Let our "main.cpp" know where the library is.
