@@ -313,12 +313,12 @@ Vector<double> TwoLevel(const SparseMatrix<double>& A,
                         const SparseMatrix<int>& P,
                         const SparseMatrix<double>& Ac)
 {
-  Vector<double> x(A.ForwardGauss(b)); // Use M = D + L. 
+  Vector<double> x(A.GaussSeidel(b)); // Use M = D + L. 
   Vector<double> rc(P.MultAT(b - A.Mult(x))); // x is x_(1/3)
   Vector<double> xc(Ac.Cols());
   CG(Ac, xc, b, rc, 1e-9, false);
   x.Add(P.Mult(xc));
-  x.Add(A.BackwardGauss(b - A.Mult(x))); // M.Transpose() = D + U // x is x_(2/3)
+  x.Add(A.GaussSeidel(b - A.Mult(x))); // M.Transpose() = D + U // x is x_(2/3)
 
   return x;
 }
