@@ -811,7 +811,6 @@ void SparseMatrix<T>::TransposeDense(DenseMatrix& output) const
 
 
 
-
 template <typename T>
 Vector<T> SparseMatrix<T>::Jacobi(Vector<T> r) const
 {
@@ -820,7 +819,7 @@ Vector<T> SparseMatrix<T>::Jacobi(Vector<T> r) const
 
   Vector<double> diag(this->GetDiag());
   for (int i = 0; i < rows_; ++i)
-    r[i] = r[i] / diag[i];
+    r[i] /= diag[i];
   return r;
 }
 
@@ -935,6 +934,8 @@ Vector<U> SparseMatrix<T>::BackwardGauss(Vector<U> r) const
   }
   return y;
 }
+
+
 
 
 
@@ -1205,15 +1206,19 @@ void SparseMatrix<T>::Mult(const VectorView<U>& input, VectorView<V> output) con
     assert(input.size() == cols_);
     assert(output.size() == rows_);
 
+    #pragma omp parallel for num_threads(4)
     for (int i = 0; i < rows_; ++i)
-    {
+    {        
+        #ifdef _OPENMP
+            if (0 == i)
+                printf("num_threads = %d\n", omp_get_num_threads());
+        #endif
         V val = 0;
 
         for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
         {
             val += data_[j] * input[indices_[j]];
         }
-
         output[i] = val;
     }
 }
@@ -1255,6 +1260,7 @@ Vector<U> SparseMatrix<T>::operator*(const VectorView<U>& input) const
     return Mult<U>(input);
 }
 
+// Matrix-matrix multiplication
 template <typename T>
 template <typename U, typename V>
 SparseMatrix<V> SparseMatrix<T>::Mult(const SparseMatrix<U>& rhs) const
@@ -1282,8 +1288,10 @@ SparseMatrix<V> SparseMatrix<T>::Mult(const SparseMatrix<U>& rhs, std::vector<in
     const std::vector<int>& rhs_indices = rhs.GetIndices();
     const std::vector<U>& rhs_data = rhs.GetData();
 
+    #pragma omp parallel for firstprivate(marker) reduction(+:out_nnz) 
     for (int i = 0; i < rows_; ++i)
     {
+        int row_nnz = 0; // <--- New line
         for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
         {
             for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k)
@@ -1291,45 +1299,60 @@ SparseMatrix<V> SparseMatrix<T>::Mult(const SparseMatrix<U>& rhs, std::vector<in
                 if (marker[rhs_indices[k]] != static_cast<int>(i))
                 {
                     marker[rhs_indices[k]] = i;
+                    ++row_nnz; // <--- New line                     
                     ++out_nnz;
                 }
             }
         }
-
-        out_indptr[i + 1] = out_nnz;
+        out_indptr[i + 1] = row_nnz; // out_indptr[i + 1] = out_nnz;
     }
-
+    
+    for (int i = 0; i < rows_; ++i) // <--- New loop
+        out_indptr[i + 1] += out_indptr[i];
+    
     std::fill(begin(marker), end(marker), -1);
 
     std::vector<int> out_indices(out_nnz);
     std::vector<V> out_data(out_nnz);
 
-    int total = 0;
-
-    for (int i = 0; i < rows_; ++i)
-    {
-        int row_nnz = total;
-
-        for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
+    #pragma omp parallel 
+    {    
+        int total = 0;
+        int index_offset = 0; // <--- New variable
+        #ifdef _OPENMP
+            index_offset = -1;
+        #endif
+        #pragma omp for firstprivate(marker)
+        for (int i = 0; i < rows_; ++i)
         {
-            for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k)
+            int row_nnz = total;
+            #ifdef _OPENMP
+                if (-1 == index_offset)
+                    index_offset = out_indptr[i];
+            #endif
+            for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
             {
-                if (marker[rhs_indices[k]] < row_nnz)
+                for (int k = rhs_indptr[indices_[j]]; k < rhs_indptr[indices_[j] + 1]; ++k)
                 {
-                    marker[rhs_indices[k]] = total;
-                    out_indices[total] = rhs_indices[k];
-                    out_data[total] = data_[j] * rhs_data[k];
+                    if (marker[rhs_indices[k]] < row_nnz)
+                    {
+                        marker[rhs_indices[k]] = total;
+                        out_indices[index_offset + total] = rhs_indices[k];
+                        // out_indices[total] = rhs_indices[k];
+                        out_data[index_offset + total] = data_[j] * rhs_data[k];
+                        // out_data[total] = data_[j] * rhs_data[k];
 
-                    total++;
-                }
-                else
-                {
-                    out_data[marker[rhs_indices[k]]] += data_[j] * rhs_data[k];
+                        total++;
+                    }
+                    else
+                    {
+                        out_data[index_offset + marker[rhs_indices[k]]] += data_[j] * rhs_data[k];
+                        // out_data[marker[rhs_indices[k]]] += data_[j] * rhs_data[k];
+                    }
                 }
             }
         }
     }
-
     return SparseMatrix<V>(std::move(out_indptr), std::move(out_indices), std::move(out_data),
                             rows_, rhs.Cols());
 }
