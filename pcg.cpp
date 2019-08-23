@@ -42,6 +42,39 @@ Vector<double> TwoLevel(const SparseMatrix<double>& A,
                         const SparseMatrix<int>& P,
                         const SparseMatrix<double>& Ac);
 
+// Conjugate gradient method with multilevel preconditioner.
+// Returns number of iterations.
+int ML(const SparseMatrix<double>& A0,
+       Vector<double>& x,
+       const Vector<double>& x0,
+       const Vector<double>& b,
+       Vector<double>(*precond)
+       (const std::vector<SparseMatrix<int>>&,
+        const std::vector<SparseMatrix<double>>&,
+        const Vector<double>&,
+	      const int,
+	      int k),
+        int ncoarse,
+        int max_level,
+	      bool verbose = true,
+        double tol = 1e-9);
+
+// Multilevel preconditioner used in function ML.
+Vector<double> Multilevel(const std::vector<SparseMatrix<int>>& P,
+                          const std::vector<SparseMatrix<double>>& A,
+                          const Vector<double>& b,
+                          const int L, // Number of levels
+                          int k); // Current level index
+
+// Get sequence of interpolation matrices P_k
+// and course graph laplacians A_k.
+int GetSequence(std::vector<SparseMatrix<int>>& P,
+                std::vector<SparseMatrix<double>>& A,
+		            int ncoarse,
+            		double q,
+                int k = 0);
+
+
 int main()
 {
   // Create graph Laplacian from edge list.
@@ -86,8 +119,12 @@ int main()
   std::cout << "TL: ";
   TL(A, x, x0, b, TwoLevel);
 
+  std::cout << "ML: ";
+  ML(A, x, x0, b, Multilevel, cbrt(n), 10);
+
   return 0;
 }
+
 // This function solves Ax = b.
 int CG(const SparseMatrix<double>& A,
        Vector<double>& x,
@@ -288,8 +325,7 @@ int TL(const SparseMatrix<double>& A,
     // If num_iter > A.Cols(), then the algorithm
     // did not converge in the expected (theoretical)
     // number of iterations.
-    printf("num_iter = %d\n", num_iter);
-    printf("nparts = %d\n", nparts);
+    printf("nparts = %d, num_iter = %d\n", nparts, num_iter);
 
     // Print the last three residual norms 
     // that are computed.
@@ -313,12 +349,139 @@ Vector<double> TwoLevel(const SparseMatrix<double>& A,
                         const SparseMatrix<int>& P,
                         const SparseMatrix<double>& Ac)
 {
-  Vector<double> x(A.GaussSeidel(b)); // Use M = D + L. 
+  Vector<double> x(A.GaussSeidel(b)); 
   Vector<double> rc(P.MultAT(b - A.Mult(x))); // x is x_(1/3)
   Vector<double> xc(Ac.Cols());
-  CG(Ac, xc, b, rc, 1e-9, false);
+  CG(Ac, xc, b, rc, 1e-12, false); // Pass b for placeholder.
   x.Add(P.Mult(xc));
-  x.Add(A.GaussSeidel(b - A.Mult(x))); // M.Transpose() = D + U // x is x_(2/3)
+  x.Add(A.GaussSeidel(b - A.Mult(x))); // x is x_(2/3)
 
+  return x;
+}
+
+int ML(const SparseMatrix<double>& A0,
+       Vector<double>& x,
+       const Vector<double>& x0,
+       const Vector<double>& c,
+       Vector<double>(*precond)
+       (const std::vector<SparseMatrix<int>>&,
+        const std::vector<SparseMatrix<double>>&,
+        const Vector<double>&,
+	      const int,
+	      int k),
+        int ncoarse,
+        int max_level,
+	      bool verbose,
+        double tol)
+{
+  std::vector<SparseMatrix<double>> A;
+  A.push_back(A0);
+
+  const int n = A0.Cols();
+  double q = fmin(0.6, pow(1.0 * ncoarse / n, 1.0 / max_level));
+
+  std::vector<SparseMatrix<int>> P;
+
+  int L = GetSequence(P, A, ncoarse, q);
+  printf("q = %.2f, L = %d, ", q, L);
+
+  x = 0; // Set initial iterate to zero.
+  // Because x = 0, the first residual r = c - A(x) = c. 
+  Vector<double> r(c);
+  
+  Vector<double> y = (*precond)(P, A, r, L, 0); // Preconditioned residual.
+
+  Vector<double> p(y); // Initial search direction.
+
+  Vector<double> g; // See usage below.
+
+  int num_iter = 0;
+  double d0 = r.Mult(y); // r dot y
+  Vector<double> d(A0.Cols() + 2); // Squares of residual norm.
+  d[0] = d0;
+
+  double alpha, beta, d1, t;
+
+  // Beginning of PCG algorithm.
+  for (int i = 0; i < A0.Rows() + 1; ++i)
+  {
+    A0.Mult(p, g); // g := A0p.
+    t = p.Mult(g);
+    alpha = d[i] / t;
+
+    x.Add(alpha, p);
+    r.Sub(alpha, g);
+
+    // Copy two vectors by value. May be inefficient.
+    y = (*precond)(P, A, r, L, 0);
+
+    d1 = d[i];
+    d[i + 1]  = r.Mult(y);
+
+    ++num_iter;
+    if (d[i + 1] < tol * tol * d0)
+      break;
+
+    beta = d[i + 1] / d1;
+    p *= beta;
+    p += y;
+  }
+
+  if (verbose)
+  {
+    // If num_iter > A.Cols(), then the algorithm
+    // did not converge in the expected (theoretical)
+    // number of iterations.
+    printf("num_iter = %d\n", num_iter);
+
+    // Print the last three residual norms 
+    // that are computed.
+    for (int i = num_iter - 2; i < num_iter + 1; ++i)
+      printf("|r| = %.3e\n", sqrt(d[i]));
+
+    // Let us see how close the approximation is
+    // in the euclidean norm.
+    r = x - x0;
+    double error(L2Norm(r));
+
+    std::cout << "Compare the approx soln with the exact: ";
+    printf("|x - x0| = %.3e\n", error);
+    std::cout << std::endl;
+  }
+  return num_iter;
+}
+
+int GetSequence(std::vector<SparseMatrix<int>>& P,
+                std::vector<SparseMatrix<double>>& A,
+		            int ncoarse,
+            		double q,
+                int k)
+{
+  int nparts = std::max(2.0, A[k].Cols() * q); // METIS does not like nparts = 1.
+  P.push_back(Unweighted(Partition(A[k], nparts)));
+  A.push_back(P[k].Transpose().Mult(A[k].Mult(P[k])));
+  A[k + 1].EliminateZeros();
+  if (A[k].Cols() > ncoarse)
+    k = GetSequence(P, A, ncoarse, q, k + 1);
+  return k;
+}
+
+Vector<double> Multilevel(const std::vector<SparseMatrix<int>>& P,
+                          const std::vector<SparseMatrix<double>>& A,
+                          const Vector<double>& b,
+                          const int L,
+                          int k) // Current level
+
+{ 
+  Vector<double> x(A[k].ForwardGauss(b)); 
+  Vector<double> r(P[k].MultAT(b - A[k].Mult(x))); // r_{k + 1}
+  Vector<double> y(A[k + 1].Cols()); // x_{k + 1}
+  if (L == k + 1)
+    CG(A[L], y, b, r, 1e-12, false); // Pass b for placeholder.
+  else
+    y = Multilevel(P, A, r, L, k + 1);
+
+  x.Add(P[k].Mult(y));
+  x.Add(A[k].BackwardGauss(b - A[k].Mult(x))); 
   return x;
 }
