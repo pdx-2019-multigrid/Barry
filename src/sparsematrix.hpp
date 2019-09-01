@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <type_traits>
 #include <assert.h>
+#include <omp.h>
 
 #include "operator.hpp"
 #include "densematrix.hpp"
@@ -1206,13 +1207,9 @@ void SparseMatrix<T>::Mult(const VectorView<U>& input, VectorView<V> output) con
     assert(input.size() == cols_);
     assert(output.size() == rows_);
 
-    #pragma omp parallel for num_threads(4)
+    #pragma omp parallel for 
     for (int i = 0; i < rows_; ++i)
     {        
-        #ifdef _OPENMP
-            if (0 == i)
-                printf("num_threads = %d\n", omp_get_num_threads());
-        #endif
         V val = 0;
 
         for (int j = indptr_[i]; j < indptr_[i + 1]; ++j)
