@@ -3,6 +3,12 @@ cmake_minimum_required(VERSION 3.5)
 # Use C++11
 set(CMAKE_CXX_STANDARD 11)
 
+# Use gcc-9.1.0
+set(CMAKE_CXX_COMPILER "/usr/local/bin/g++-9")
+
+# Use OpenMP
+# set(CMAKE_CXX_FLAGS "-fopenmp")
+
 # Do not use debug mode.
 set(CMAKE_BUILD_TYPE Release)
 
@@ -19,7 +25,7 @@ link_directories("/usr/local/lib")
 add_subdirectory(src)
 
 # Make an executable file.
-add_executable(test pcg.cpp)
+add_executable(pcg pcg.cpp)
 
 # Link library linalg into executable file.
-target_link_libraries(test PRIVATE linalg metis)
+target_link_libraries(pcg PRIVATE linalg metis)
