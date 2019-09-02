@@ -819,6 +819,7 @@ Vector<T> SparseMatrix<T>::Jacobi(Vector<T> r) const
   assert(rows_ == r.size());
 
   Vector<double> diag(this->GetDiag());
+  #pragma omp parallel for
   for (int i = 0; i < rows_; ++i)
     r[i] /= diag[i];
   return r;
