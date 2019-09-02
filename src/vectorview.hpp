@@ -127,6 +127,11 @@ class VectorView
         */
         virtual void Print(const std::string& label = "", std::ostream& out = std::cout) const;
 
+        /*! @brief Dot vect to this vector
+            @param vect vector to dot
+        */
+        T Dot(const VectorView<T>& vect);
+
         /*! @brief Inner product of two vectors
             @param vect other vector
         */
@@ -375,6 +380,19 @@ void VectorView<T>::Print(const std::string& label, std::ostream& out) const
     }
 
     out << "\n";
+}
+
+template <typename T>
+T VectorView<T>::Dot(const VectorView<T>& rhs)
+{
+    assert(rhs.size_ == size_);
+    T sum = 0.0;
+    #pragma omp parallel for reduction(+:sum)
+    for (int i = 0; i < size_; ++i)
+    {
+        sum += data_[i] * rhs[i];
+    }
+    return sum;
 }
 
 template <typename T>
