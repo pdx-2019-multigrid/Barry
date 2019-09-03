@@ -2,6 +2,7 @@
 #include <chrono>
 
 using namespace linalgcpp;
+using namespace std::chrono;
 
 // Regular conjugate gradient method.
 // Returns number of iterations.
@@ -10,7 +11,7 @@ int CG(const SparseMatrix<double>& A,
        const Vector<double>& x0,
        const Vector<double>& b,
        double tol = 1e-9,
-       bool verbose = true);
+       bool verbose = false);
 
 // Preconditioned conjugate gradient method.
 // Returns number of iterations.
@@ -21,7 +22,7 @@ int PCG(const SparseMatrix<double>& A,
         Vector<double>(SparseMatrix<double>::*precond)
         (Vector<double>) const,
         double tol = 1e-9,
-        bool verbose = true);
+        bool verbose = false);
 
 // Conjugate gradient method with two-level preconditioner.
 // Returns number of iterations.
@@ -35,7 +36,7 @@ int TL(const SparseMatrix<double>& A,
         const SparseMatrix<int>&,
         const SparseMatrix<double>&),
        double tol = 1e-9,
-       bool verbose = true);
+       bool verbose = false);
 
 // Two-level preconditioner used in function TL.
 Vector<double> TwoLevel(const SparseMatrix<double>& A, 
@@ -57,7 +58,7 @@ int ML(const SparseMatrix<double>& A0,
 	      int k),
         int ncoarse,
         int max_level,
-	      bool verbose = true,
+	      bool verbose = false,
         double tol = 1e-9);
 
 // Multilevel preconditioner used in function ML.
@@ -81,9 +82,10 @@ int main()
   // Create graph Laplacian from edge list.
   // Must have zeroth vertex.
   std::string graph;
-  std::cout << "Please type the graph filename: ";
+  std::cout << "Please type the graph filename without extension: ";
   getline(std::cin, graph);
-  SparseMatrix<double> A(ReadGraphList(graph));
+  std::string full("../data/" + graph + ".txt");
+  SparseMatrix<double> A(ReadGraphList(full));
 
   // Make the matrix positive definite.
   A.EliminateRowCol(A.Rows() - 1);
@@ -94,37 +96,71 @@ int main()
 
   // Compare size of matrix with number of iterations
   std::cout << "The matrix is " << n << "x" << n 
-            << ".\n" <<std::endl;
+            << std::endl;
 
-  std::string vector;
-  std::cout << "Please type the vector filename: ";
-  getline(std::cin, vector);
-  Vector<double> x0(ReadText(vector); // Exact solution x0.
+  std::string vector("../data/v" + graph + ".txt");
+  Vector<double> x0(ReadText(vector)); // Exact solution x0.
   Vector<double> b(A.Mult(x0)); // Definition of b.
 
   Vector<double> x(n); // Iterate x.
   int num_iter;
+  auto t1 = high_resolution_clock::now();
+  auto t2 = high_resolution_clock::now();
+  duration<double> duration;
 
-  std::cout << "CG: ";
-  CG(A, x, x0, b);
+  std::cout << "CG:\n";
+  for (int k = 0; k < 10; ++k)
+  {
+    t1 = high_resolution_clock::now();
+    num_iter = CG(A, x, x0, b);
+    t2 = high_resolution_clock::now();
+    duration = t2 - t1;
+    printf("%.6f %d\n", duration.count(), num_iter);
+  }
 
   // Each preconditioner is a method of the SparseMatrix
   // class. The syntax leaves something to be desired.
-  std::cout << "PCG Jacobi: ";
-  PCG(A, x, x0, b, &SparseMatrix<double>::Jacobi);
+  std::cout << "PCG Jacobi:\n";
+  for (int k = 0; k < 10; ++k)
+  {
+    t1 = high_resolution_clock::now();
+    num_iter = PCG(A, x, x0, b, &SparseMatrix<double>::Jacobi);
+    t2 = high_resolution_clock::now();
+    duration = t2 - t1;
+    printf("%.6f %d\n", duration.count(), num_iter);
+  }
 
-  // std::cout << "PCG l1-smoother: ";
-  // PCG(A, x, x0, b, &SparseMatrix<double>::L1);
+  std::cout << "PCG l1-smoother:\n";
+  for (int k = 0; k < 10; ++k)
+  {
+    t1 = high_resolution_clock::now();
+    num_iter = PCG(A, x, x0, b, &SparseMatrix<double>::L1);
+    t2 = high_resolution_clock::now();
+    duration = t2 - t1;
+    printf("%.6f %d\n", duration.count(), num_iter);
+  }
 
-  // std::cout << "PCG Gauss-Seidel: ";
-  // PCG(A, x, x0, b, &SparseMatrix<double>::GaussSeidel);
+  std::cout << "PCG Gauss-Seidel:\n";
+  for (int k = 0; k < 10; ++k)
+  {
+    t1 = high_resolution_clock::now();
+    num_iter = PCG(A, x, x0, b, &SparseMatrix<double>::GaussSeidel);
+    t2 = high_resolution_clock::now();
+    duration = t2 - t1;
+    printf("%.6f %d\n", duration.count(), num_iter);
+  }
 
-  std::cout << "TL: ";
-  TL(A, x, x0, b, TwoLevel);
+  std::cout << "TL:\n";
+  for (int k = 0; k < 10; ++k)
+  {
+    TL(A, x, x0, b, TwoLevel);
+  }
 
-  std::cout << "ML: ";
-  ML(A, x, x0, b, Multilevel, cbrt(n), 10);
-
+  std::cout << "ML:\n";
+  for (int k = 0; k < 10; ++k)
+  {
+    ML(A, x, x0, b, Multilevel, cbrt(n), 10);
+  }
   return 0;
 }
 
@@ -176,11 +212,6 @@ int CG(const SparseMatrix<double>& A,
     // number of iterations.
     printf("num_iter = %d\n", num_iter);   
  
-    // Print the last three residual norms 
-    // that are computed.
-    for (int i = num_iter - 2; i < num_iter + 1; ++i)
-      printf("|r| = %.3e\n", sqrt(c[i]));
-
     // Let us see how close the approximation is
     // in the euclidean norm.
     r = x - x0;
@@ -248,11 +279,6 @@ int PCG(const SparseMatrix<double>& A,
     // number of iterations.
     printf("num_iter = %d\n", num_iter);   
  
-    // Print the last three residual norms 
-    // that are computed.
-    for (int i = num_iter - 2; i < num_iter + 1; ++i)
-      printf("|r| = %.3e\n", sqrt(c[i]));
-
     // Let us see how close the approximation is
     // in the euclidean norm.
     r = x - x0;
@@ -277,12 +303,21 @@ int TL(const SparseMatrix<double>& A,
        double tol,
        bool verbose)
 { 
+  auto t1 = high_resolution_clock::now();
+  auto t2 = high_resolution_clock::now();
+  duration<double> duration;
+
+  t1 = high_resolution_clock::now();
   // Determine interpolation matrix P and coarse graph Laplacian Ac.
   int nparts = std::max(2.0, cbrt(A.Cols()));
   SparseMatrix<int> P(Unweighted(Partition(A, nparts)));
   SparseMatrix<double> Ac = P.Transpose().Mult(A.Mult(P));
   Ac.EliminateZeros();
+  t2 = high_resolution_clock::now();
+  duration = t2 - t1;
+  printf("%.6f ", duration.count());
 
+  t1 = high_resolution_clock::now();
   x = 0; // Set initial iterate to zero.
   // Because x = 0, the first residual r = b - A(x) = b. 
   Vector<double> r(b);
@@ -327,11 +362,6 @@ int TL(const SparseMatrix<double>& A,
     // number of iterations.
     printf("nparts = %d, num_iter = %d\n", nparts, num_iter);
 
-    // Print the last three residual norms 
-    // that are computed.
-    for (int i = num_iter - 2; i < num_iter + 1; ++i)
-      printf("|r| = %.3e\n", sqrt(c[i]));
-
     // Let us see how close the approximation is
     // in the euclidean norm.
     r = x - x0;
@@ -341,6 +371,9 @@ int TL(const SparseMatrix<double>& A,
     printf("|x - x0| = %.3e\n", error);
     std::cout << std::endl;
   }
+  t2 = high_resolution_clock::now();
+  duration = t2 - t1;
+  printf("%.6f %d\n", duration.count(), num_iter);
   return num_iter;
 }
 
@@ -382,9 +415,18 @@ int ML(const SparseMatrix<double>& A0,
 
   std::vector<SparseMatrix<int>> P;
 
-  int L = GetSequence(P, A, ncoarse, q);
-  printf("q = %.2f, L = %d, ", q, L);
+  auto t1 = high_resolution_clock::now();
+  auto t2 = high_resolution_clock::now();
+  duration<double> duration;
 
+  t1 = high_resolution_clock::now();
+  int L = GetSequence(P, A, ncoarse, q);
+  t2 = high_resolution_clock::now();
+  printf("q = %.2f L = %d ", q, L);
+  duration = t2 - t1;
+  printf("%.6f ", duration.count());
+  
+  t1 = high_resolution_clock::now();
   x = 0; // Set initial iterate to zero.
   // Because x = 0, the first residual r = c - A(x) = c. 
   Vector<double> r(c);
@@ -433,11 +475,6 @@ int ML(const SparseMatrix<double>& A0,
     // number of iterations.
     printf("num_iter = %d\n", num_iter);
 
-    // Print the last three residual norms 
-    // that are computed.
-    for (int i = num_iter - 2; i < num_iter + 1; ++i)
-      printf("|r| = %.3e\n", sqrt(d[i]));
-
     // Let us see how close the approximation is
     // in the euclidean norm.
     r = x - x0;
@@ -447,6 +484,9 @@ int ML(const SparseMatrix<double>& A0,
     printf("|x - x0| = %.3e\n", error);
     std::cout << std::endl;
   }
+  t2 = high_resolution_clock::now();
+  duration = t2 - t1;
+  printf("%.6f %d\n", duration.count(), num_iter);
   return num_iter;
 }
 
