@@ -4,6 +4,9 @@
 using namespace linalgcpp;
 using namespace std::chrono;
 
+// This file is used to test the time performance of each preconditioner.
+// The output is formatted for copying into a spreadsheet for analysis.
+
 // Regular conjugate gradient method.
 // Returns number of iterations.
 int CG(const SparseMatrix<double>& A,
