@@ -1,6 +1,12 @@
 #include "partition.hpp"
-
 using namespace linalgcpp;
+
+// This file takes an edge list for a connected graph and creates a graph Laplacian. 
+// Then a row and column is deleted to make the matrix positive definite.
+// A random vector x0 is used to set a right-hand side vector b.
+// We solve Ax = b using preconditoned conjugate gradient.
+// The output includes the last three residual norms, the number of iterations
+// and the distance between the exact solution and approximate one.
 
 // Regular conjugate gradient method.
 // Returns number of iterations.
