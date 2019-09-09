@@ -4,10 +4,10 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_CXX_STANDARD 11)
 
 # Use gcc-9.1.0
-set(CMAKE_CXX_COMPILER "/usr/local/bin/g++-9")
+set(CMAKE_CXX_COMPILER "path_to_compiler")
 
 # Use OpenMP
-# set(CMAKE_CXX_FLAGS "-fopenmp")
+set(CMAKE_CXX_FLAGS "-fopenmp")
 
 # Do not use debug mode.
 set(CMAKE_BUILD_TYPE Release)
@@ -17,15 +17,15 @@ project(LANGUAGES CXX)
 
 # The include directory contains metis.h
 # and the lib directory contains libmetis.a or libmetis.so
-include_directories("/usr/local/include")
-link_directories("/usr/local/lib")
+include_directories("path_to_include")
+link_directories("path_to_lib")
 
 # Go to CMake file in directory src. Use the
 # source files there, a library called linalg.
 add_subdirectory(src)
 
 # Make an executable file.
-add_executable(pcg pcg.cpp)
+add_executable(executable file.cpp)
 
 # Link library linalg into executable file.
-target_link_libraries(pcg PRIVATE linalg metis)
+target_link_libraries(executable PRIVATE linalg metis)
