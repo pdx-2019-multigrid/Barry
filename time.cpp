@@ -115,7 +115,7 @@ int main()
     num_iter = CG(A, x, x0, b);
     t2 = high_resolution_clock::now();
     duration = t2 - t1;
-    printf("%.6f %d\n", duration.count(), num_iter);
+    printf("%.6f %d 0\n", duration.count(), num_iter);
   }
 
   // Each preconditioner is a method of the SparseMatrix
@@ -127,7 +127,7 @@ int main()
     num_iter = PCG(A, x, x0, b, &SparseMatrix<double>::Jacobi);
     t2 = high_resolution_clock::now();
     duration = t2 - t1;
-    printf("%.6f %d\n", duration.count(), num_iter);
+    printf("%.6f %d 0\n", duration.count(), num_iter);
   }
 
   std::cout << "PCG l1-smoother:\n";
@@ -137,7 +137,7 @@ int main()
     num_iter = PCG(A, x, x0, b, &SparseMatrix<double>::L1);
     t2 = high_resolution_clock::now();
     duration = t2 - t1;
-    printf("%.6f %d\n", duration.count(), num_iter);
+    printf("%.6f %d 0\n", duration.count(), num_iter);
   }
 
   std::cout << "PCG Gauss-Seidel:\n";
@@ -147,7 +147,7 @@ int main()
     num_iter = PCG(A, x, x0, b, &SparseMatrix<double>::GaussSeidel);
     t2 = high_resolution_clock::now();
     duration = t2 - t1;
-    printf("%.6f %d\n", duration.count(), num_iter);
+    printf("%.6f %d 0\n", duration.count(), num_iter);
   }
 
   std::cout << "TL:\n";
@@ -157,9 +157,14 @@ int main()
   }
 
   std::cout << "ML:\n";
-  for (int k = 0; k < 10; ++k)
+  
+  int level;
+  std::cout << "Enter the number of levels: ";
+  std::cin >> level;
+
+  for (int k = 1; k < 10; ++k)
   {
-    ML(A, x, x0, b, Multilevel, cbrt(n), 10);
+    ML(A, x, x0, b, Multilevel, cbrt(n), level);
   }
   return 0;
 }
@@ -372,8 +377,10 @@ int TL(const SparseMatrix<double>& A,
     std::cout << std::endl;
   }
   t2 = high_resolution_clock::now();
+  r = x - x0;
+  double error(L2Norm(r));
   duration = t2 - t1;
-  printf("%.6f %d\n", duration.count(), num_iter);
+  printf("%.6f %d %.3e 0\n", duration.count(), num_iter, error);
   return num_iter;
 }
 
@@ -485,8 +492,10 @@ int ML(const SparseMatrix<double>& A0,
     std::cout << std::endl;
   }
   t2 = high_resolution_clock::now();
+  r = x - x0;
+  double error(L2Norm(r));
   duration = t2 - t1;
-  printf("%.6f %d\n", duration.count(), num_iter);
+  printf("%.6f %d %.3e 0\n", duration.count(), num_iter, error);
   return num_iter;
 }
 
