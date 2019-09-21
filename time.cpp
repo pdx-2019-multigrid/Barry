@@ -57,11 +57,11 @@ int ML(const SparseMatrix<double>& A0,
        (const std::vector<SparseMatrix<int>>&,
         const std::vector<SparseMatrix<double>>&,
         const Vector<double>&,
-	      const int,
-	      int k),
+        const int,
+        int k),
         int ncoarse,
         int max_level,
-	      bool verbose = false,
+        bool verbose = false,
         double tol = 1e-9);
 
 // Multilevel preconditioner used in function ML.
@@ -75,8 +75,8 @@ Vector<double> Multilevel(const std::vector<SparseMatrix<int>>& P,
 // and course graph laplacians A_k.
 int GetSequence(std::vector<SparseMatrix<int>>& P,
                 std::vector<SparseMatrix<double>>& A,
-		            int ncoarse,
-            		double q,
+                int ncoarse,
+                double q,
                 int k = 0);
 
 
@@ -410,11 +410,11 @@ int ML(const SparseMatrix<double>& A0,
        (const std::vector<SparseMatrix<int>>&,
         const std::vector<SparseMatrix<double>>&,
         const Vector<double>&,
-	      const int,
-	      int k),
+        const int,
+        int k),
         int ncoarse,
         int max_level,
-	      bool verbose,
+        bool verbose,
         double tol)
 {
   std::vector<SparseMatrix<double>> A;

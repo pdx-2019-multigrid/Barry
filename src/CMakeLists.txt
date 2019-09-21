@@ -1,4 +1,5 @@
 # Let us define a library with the listed cpp files.
+# The files are listed in order of their dependencies.
 add_library(linalg
 vectorview.cpp
 vector.cpp
